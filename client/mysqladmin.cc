@@ -26,6 +26,7 @@
 #include <mysql_version.h>
 #include <welcome_copyright_notice.h>
 #include <my_rnd.h>
+#include <password.h>
 
 #define ADMIN_VERSION "9.1"
 #define MAX_MYSQL_VAR 512
@@ -440,11 +441,8 @@ int main(int argc,char *argv[])
           re-establish it if --wait ("retry-connect") was given and user
           didn't signal for us to die. Otherwise, signal failure.
         */
-#ifndef HAVE_LIBMARIADB
-	if (mysql.net.vio == 0)
-#else
+
 	if (mysql.net.pvio == 0)
-#endif
 	{
 	  if (option_wait && !interrupted)
 	  {
@@ -547,16 +545,16 @@ static my_bool sql_connect(MYSQL *mysql, uint wait)
 	{
 	  fprintf(stderr,
 		  "Check that mysqld is running and that the socket: '%s' exists!\n",
-		  unix_port ? unix_port : mysql_unix_port);
+		  unix_port ? unix_port : MYSQL_UNIX_ADDR);
 	}
 	else if (mysql_errno(mysql) == CR_CONN_HOST_ERROR ||
 		 mysql_errno(mysql) == CR_UNKNOWN_HOST)
 	{
 	  fprintf(stderr,"Check that mysqld is running on %s",host);
 	  fprintf(stderr," and that the port is %d.\n",
-		  tcp_port ? tcp_port: mysql_port);
+		  tcp_port ? tcp_port: MYSQL_PORT);
 	  fprintf(stderr,"You can check this by doing 'telnet %s %d'\n",
-		  host, tcp_port ? tcp_port: mysql_port);
+		  host, tcp_port ? tcp_port: MYSQL_PORT);
 	}
       }
       return 1;
@@ -1081,14 +1079,10 @@ static int execute_commands(MYSQL *mysql,int argc, char **argv)
             mysql_free_result(res);
           }
         }
-#ifndef HAVE_LIBMARIADB
         if (old)
-          make_scrambled_password_323(crypted_pw, typed_password);
+          my_make_scrambled_password_323(crypted_pw, typed_password, sizeof(crypted_pw));
         else
-          make_scrambled_password(crypted_pw, typed_password);
-#else
-        ma_make_scrambled_password(crypted_pw, typed_password);
-#endif
+          my_make_scrambled_password(crypted_pw, typed_password, sizeof(crypted_pw));
       }
       else
 	crypted_pw[0]=0;			/* No password */

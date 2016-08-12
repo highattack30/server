@@ -24,7 +24,6 @@
 #include <mysql_version.h>
 #include <sql_common.h>
 #include <mysql/client_plugin.h>
-
 static my_bool get_reconnect(MYSQL *mysql);
 /*
   If non_blocking_api_enabled is true, we will re-define all the blocking

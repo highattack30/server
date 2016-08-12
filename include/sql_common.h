@@ -77,9 +77,13 @@ typedef struct st_mysql_methods
 #endif
 } MYSQL_METHODS;
 
+#ifdef LIBMARIADB
+#define simple_command(mysql, command, arg, length, skip_check) ma_simple_command(mysql, command, (char *)arg, length, skip_check, NULL)
+#else
 #define simple_command(mysql, command, arg, length, skip_check) \
   (*(mysql)->methods->advanced_command)(mysql, command, 0,  \
                                         0, arg, length, skip_check, NULL)
+#endif
 #define stmt_command(mysql, command, arg, length, stmt) \
   (*(mysql)->methods->advanced_command)(mysql, command, 0,  \
                                         0, arg, length, 1, stmt)

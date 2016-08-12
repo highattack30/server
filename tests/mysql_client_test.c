@@ -36,16 +36,12 @@
 
 static const my_bool my_true= 1;
 
-#ifdef LIBMARIADB
-#undef simple_command
-#define simple_command(A,B,C,D,E) (A)->methods->db_command((A),(B),(const char *)(C),(D),(E), NULL);
-#endif
 
 /* Query processing */
 
 static my_bool get_reconnect(MYSQL *mysql)
 {
-#ifndef LIBMARIADB
+#ifdef EMBEDDED_LIBRARY
   return mysql->reconnect;
 #else
   my_bool reconnect;
@@ -13423,14 +13419,7 @@ static void test_bug9478()
       /* Fill in the fetch packet */
       int4store(buff, stmt->stmt_id);
       buff[4]= 1;                               /* prefetch rows */
-#ifndef LIBMARIADB
-      rc= ((*mysql->methods->advanced_command)(mysql, COM_STMT_FETCH,
-                                               (uchar*) buff,
-                                               sizeof(buff), 0,0,1,NULL) ||
-           (*mysql->methods->read_query_result)(mysql));
-#else
       rc= mysql_stmt_fetch(stmt);
-#endif
       DIE_UNLESS(rc);
       if (!opt_silent && i == 0)
         printf("Got error (as expected): %s\n", mysql_error(mysql));

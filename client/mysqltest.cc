@@ -4399,11 +4399,9 @@ void do_send_quit(struct st_command *command)
 
   if (!(con= find_connection_by_name(name)))
     die("connection '%s' not found in connection pool", name);
-#ifndef HAVE_LIBMARIADB
-  simple_command(con->mysql,COM_QUIT,0,0,1);
-#else
-  con->mysql->methods->db_command(con->mysql, COM_QUIT, 0, 0, 1, 0);
-#endif
+
+  simple_command(con->mysql, COM_QUIT, 0, 0, 1);
+
   DBUG_VOID_RETURN;
 }
 
@@ -5496,20 +5494,8 @@ void do_close_connection(struct st_command *command)
 #ifndef EMBEDDED_LIBRARY
   if (command->type == Q_DIRTY_CLOSE)
   {
-#ifndef HAVE_LIBMARIADB    
-    if (con->mysql->net.vio)
-    {
-      vio_delete(con->mysql->net.vio);
-      con->mysql->net.vio = 0;
-    }
-#else
-    if (con->mysql->net.pvio)
-    {
-      ma_pvio_close(con->mysql->net.pvio);
-      con->mysql->net.pvio = 0;
-    }
+    mariadb_cancel(con->mysql);
   }
-#endif  
 #endif /*!EMBEDDED_LIBRARY*/
   if (con->stmt)
     do_stmt_close(con);

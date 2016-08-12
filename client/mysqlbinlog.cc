@@ -39,9 +39,6 @@
 #include "sql_priv.h"
 #include "log_event.h"
 #include "compat56.h"
-#ifdef HAVE_LIBMARIADB
-#include "violite.h"
-#endif
 #include "sql_common.h"
 #include "my_dir.h"
 #include <welcome_copyright_notice.h> // ORACLE_WELCOME_COPYRIGHT_NOTICE
@@ -2283,11 +2280,8 @@ static Exit_status dump_remote_log_entries(PRINT_EVENT_INFO *print_event_info,
     slave_id= 0;
   int4store(buf + 6, slave_id);
   memcpy(buf + 10, logname, logname_len);
-#ifndef HAVE_LIBMARIADB
+
   if (simple_command(mysql, COM_BINLOG_DUMP, buf, logname_len + 10, 1))
-#else
-  if (ma_simple_command(mysql, COM_BINLOG_DUMP, (char *)buf, logname_len + 10, 1, 0))
-#endif
   {
     error("Got fatal error sending the log dump command.");
     DBUG_RETURN(ERROR_STOP);
