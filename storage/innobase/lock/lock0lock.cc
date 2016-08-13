@@ -2471,10 +2471,9 @@ lock_grant(
 		dict_table_t*	table = lock->un_member.tab_lock.table;
 
 		if (UNIV_UNLIKELY(table->autoinc_trx == lock->trx)) {
-			fprintf(stderr,
-				"InnoDB: Error: trx already had"
-				" an AUTO-INC lock!\n");
-		} else {
+			ib::error() << "Transaction already had an"
+				    << " AUTO-INC lock!";
+ 		} else {
 			table->autoinc_trx = lock->trx;
 
 			ib_vector_push(lock->trx->autoinc_locks, &lock);

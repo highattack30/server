@@ -1347,9 +1347,11 @@ fil_space_create(
 
 	if (crypt_data) {
 		space->read_page0 = true;
+		/* If table could be encrypted print info */
+		ib::info() << "Tablespace ID " << id << " name " << space->name
+			   << ":" << fil_crypt_get_mode(crypt_data)
+			   << " " << fil_crypt_get_type(crypt_data);
 	}
-
-	ib::info() << "Tablespace ID " << id << " with crypt_data " << crypt_data << " done.";
 
 	mutex_exit(&fil_system->mutex);
 
