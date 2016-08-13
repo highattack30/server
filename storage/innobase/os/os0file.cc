@@ -4333,8 +4333,7 @@ os_file_create_simple_func(
 
 		access = GENERIC_READ;
 
-	} else if (access_type == OS_FILE_READ_WRITE ||
-		   access_type == OS_FILE_READ_WRITE_CACHED) {
+	} else if (access_type == OS_FILE_READ_WRITE) {
 
 		access = GENERIC_READ | GENERIC_WRITE;
 
@@ -4807,8 +4806,7 @@ os_file_create_simple_no_error_handling_func(
 
 		access = GENERIC_READ;
 
-	} else if (access_type == OS_FILE_READ_WRITE ||
-		   access_type == OS_FILE_READ_WRITE_CACHED) {
+	} else if (access_type == OS_FILE_READ_WRITE) {
 
 		access = GENERIC_READ | GENERIC_WRITE;
 

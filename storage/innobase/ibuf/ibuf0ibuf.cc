@@ -2569,8 +2569,8 @@ ibuf_merge_pages(
 
 	sum_sizes = ibuf_get_merge_page_nos(TRUE,
 					    btr_pcur_get_rec(&pcur), &mtr,
-					    space_ids, space_versions,
-					    page_nos, n_pages);
+					    space_ids,
+					    page_nos, space_versions, n_pages);
 #if 0 /* defined UNIV_IBUF_DEBUG */
 	fprintf(stderr, "Ibuf contract sync %lu pages %lu volume %lu\n",
 		sync, *n_pages, sum_sizes);
@@ -3575,8 +3575,8 @@ fail_exit:
 
 			ibuf_get_merge_page_nos(FALSE,
 						btr_pcur_get_rec(&pcur), &mtr,
-						space_ids, space_versions,
-						page_nos, &n_stored);
+						space_ids,
+						page_nos, space_versions, &n_stored);
 
 			goto fail_exit;
 		}
