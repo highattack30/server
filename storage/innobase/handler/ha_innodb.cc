@@ -5488,7 +5488,7 @@ innobase_kill_connection(
 	if (trx != NULL) {
 
 		/* Cancel a pending lock request if there are any */
-		lock_trx_handle_wait(trx);
+		lock_trx_handle_wait(trx, false, false);
 	}
 
 	DBUG_VOID_RETURN;
@@ -5515,7 +5515,41 @@ innobase_kill_query(
 
 	if (trx != NULL) {
 		/* Cancel a pending lock request if there are any */
-		lock_trx_handle_wait(trx);
+		bool lock_mutex_taken = false;
+		bool trx_mutex_taken = false;
+		bool already_have_lock_mutex = false;
+		bool already_have_trx_mutex = false;
+
+		if (!wsrep_thd_is_BF(trx->mysql_thd, FALSE) &&
+			trx->abort_type == TRX_SERVER_ABORT) {
+			ut_ad(!lock_mutex_own());
+			lock_mutex_enter();
+			lock_mutex_taken = true;
+		} else {
+			already_have_lock_mutex = true;
+		}
+
+		if (trx->abort_type != TRX_WSREP_ABORT) {
+			ut_ad(!trx_mutex_own(trx));
+			trx_mutex_enter(trx);
+			trx_mutex_taken = true;
+		} else {
+			already_have_trx_mutex = true;
+		}
+
+		lock_trx_handle_wait(trx,
+			(lock_mutex_taken || already_have_lock_mutex),
+			(trx_mutex_taken || already_have_trx_mutex));
+
+		if (lock_mutex_taken) {
+			ut_ad(lock_mutex_own());
+			lock_mutex_exit();
+		}
+
+		if (trx_mutex_taken) {
+			ut_ad(trx_mutex_own(trx));
+			trx_mutex_exit(trx);
+		}
 	}
 
 	DBUG_VOID_RETURN;
@@ -15430,10 +15464,10 @@ These errors will abort the current query:
       case HA_ERR_QUERY_INTERRUPTED:
 For other error codes, the server will fall back to counting records. */
 
+#ifdef MYSQL_57_SELECT_COUNT_OPTIMIZATION
 int
-ha_innobase::records(
-/*==================*/
-	ha_rows*			num_rows) /*!< out: number of rows */
+ha_innobase::records(ha_rows* num_rows)
+/*===================================*/
 {
 	DBUG_ENTER("ha_innobase::records()");
 
@@ -15462,7 +15496,7 @@ ha_innobase::records(
 
 		*num_rows = HA_POS_ERROR;
 		DBUG_RETURN(HA_ERR_NO_SUCH_TABLE);
-		// DBUG_RETURN(HA_ERR_TABLESPACE_MISSING);
+		//DBUG_RETURN(HA_ERR_TABLESPACE_MISSING);
 
 	} else if (m_prebuilt->table->corrupted) {
 		ib_errf(m_user_thd, IB_LOG_LEVEL_WARN,
@@ -15508,17 +15542,18 @@ ha_innobase::records(
 	case DB_LOCK_WAIT_TIMEOUT:
 		*num_rows = HA_POS_ERROR;
 		DBUG_RETURN(convert_error_code_to_mysql(ret, 0, m_user_thd));
+		break;
 	case DB_INTERRUPTED:
 		*num_rows = HA_POS_ERROR;
 		DBUG_RETURN(ER_QUERY_INTERRUPTED);
 		// JAN: TODO: MySQL 5.7
 		//DBUG_RETURN(HA_ERR_QUERY_INTERRUPTED);
+		break;
 	default:
 		/* No other error besides the three below is returned from
 		row_scan_index_for_mysql(). Make a debug catch. */
 		*num_rows = HA_POS_ERROR;
 		ut_ad(0);
-		DBUG_RETURN(-1);
 	}
 
 	m_prebuilt->trx->op_info = "";
@@ -15530,9 +15565,9 @@ ha_innobase::records(
 		// DBUG_RETURN(HA_ERR_QUERY_INTERRUPTED);
 	}
 
-	*num_rows= n_rows;
 	DBUG_RETURN(0);
 }
+#endif /* MYSQL_57_SELECT_COUNT_OPTIMIZATION */
 
 /*********************************************************************//**
 Estimates the number of index records in a range.

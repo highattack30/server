@@ -263,7 +263,8 @@ public:
 
 	void position(uchar *record);
 
-	virtual int records(ha_rows* num_rows);
+	// JAN: TODO: MySQL 5.7
+	// int records(ha_rows* num_rows);
 
 	ha_rows records_in_range(
 		uint			inx,

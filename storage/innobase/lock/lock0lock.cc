@@ -49,6 +49,8 @@ Created 5/7/1996 Heikki Tuuri
 
 #include <set>
 
+#include "wsrep_thd.h"
+
 /** Total number of cached record locks */
 static const ulint	REC_LOCK_CACHE = 8;
 
@@ -2068,7 +2070,10 @@ RecLock::add_to_waitq(const lock_t* wait_for, const lock_prdt_t* prdt)
 
 	/* m_trx->mysql_thd is NULL if it's an internal trx. So current_thd is used */
 	if (err == DB_LOCK_WAIT) {
+		ut_ad(wait_for && wait_for->trx);
+		wait_for->trx->abort_type = TRX_REPLICATION_ABORT;
 		thd_report_wait_for(current_thd, wait_for->trx->mysql_thd);
+		wait_for->trx->abort_type = TRX_SERVER_ABORT;
 	}
 	return(err);
 }
@@ -2456,6 +2461,7 @@ lock_grant(
 	lock_t*	lock)	/*!< in/out: waiting lock request */
 {
 	ut_ad(lock_mutex_own());
+	ut_ad(!trx_mutex_own(lock->trx));
 
 	lock_reset_lock_and_trx_wait(lock);
 
@@ -2464,9 +2470,10 @@ lock_grant(
 	if (lock_get_mode(lock) == LOCK_AUTO_INC) {
 		dict_table_t*	table = lock->un_member.tab_lock.table;
 
-		if (table->autoinc_trx == lock->trx) {
-			ib::error() << "Transaction already had an"
-				<< " AUTO-INC lock!";
+		if (UNIV_UNLIKELY(table->autoinc_trx == lock->trx)) {
+			fprintf(stderr,
+				"InnoDB: Error: trx already had"
+				" an AUTO-INC lock!\n");
 		} else {
 			table->autoinc_trx = lock->trx;
 
@@ -2474,8 +2481,12 @@ lock_grant(
 		}
 	}
 
-	DBUG_PRINT("ib_lock", ("wait for trx " TRX_ID_FMT " ends",
-			       trx_get_id_for_print(lock->trx)));
+#ifdef UNIV_DEBUG_NEW
+	if (lock_print_waits) {
+		fprintf(stderr, "Lock wait for trx " TRX_ID_FMT " ends\n",
+			lock->trx->id);
+	}
+#endif /* UNIV_DEBUG_NEW */
 
 	/* If we are resolving a deadlock by choosing another transaction
 	as a victim, then our original transaction may not be in the
@@ -2491,6 +2502,17 @@ lock_grant(
 			lock_wait_release_thread_if_suspended(thr);
 		}
 	}
+
+	/* Cumulate total lock wait time for statistics */
+	if (lock_get_type_low(lock) & LOCK_TABLE) {
+		lock->trx->total_table_lock_wait_time +=
+			(ulint)difftime(ut_time(), lock->trx->lock.wait_started);
+	} else {
+		lock->trx->total_rec_lock_wait_time +=
+			(ulint)difftime(ut_time(), lock->trx->lock.wait_started);
+	}
+
+	lock->wait_time = (ulint)difftime(ut_time(), lock->requested_time);
 
 	trx_mutex_exit(lock->trx);
 }
@@ -2585,7 +2607,21 @@ lock_rec_dequeue_from_page(
 
 			/* Grant the lock */
 			ut_ad(lock->trx != in_lock->trx);
+			bool exit_trx_mutex = false;
+
+			if (in_lock->trx->abort_type == TRX_REPLICATION_ABORT &&
+			    lock->trx->abort_type == TRX_SERVER_ABORT) {
+				ut_ad(trx_mutex_own(lock->trx));
+				trx_mutex_exit(lock->trx);
+				exit_trx_mutex = true;
+			}
+
 			lock_grant(lock);
+
+			if (exit_trx_mutex) {
+				ut_ad(!trx_mutex_own(lock->trx));
+				trx_mutex_enter(lock->trx);
+			}
 		}
 	}
 }
@@ -6850,27 +6886,66 @@ the wait lock.
 dberr_t
 lock_trx_handle_wait(
 /*=================*/
-	trx_t*	trx)	/*!< in/out: trx lock state */
+	trx_t*	trx,	/*!< in/out: trx lock state */
+	bool	lock_mutex_taken,
+	bool	trx_mutex_taken)
 {
-	dberr_t	err;
+	dberr_t	err=DB_SUCCESS;
+	bool take_lock_mutex = false;
+	bool take_trx_mutex = false;
 
-	lock_mutex_enter();
+	if (!lock_mutex_taken) {
+		ut_ad(!lock_mutex_own());
+		lock_mutex_enter();
+		take_lock_mutex = true;
+	}
 
-	trx_mutex_enter(trx);
+	if (!trx_mutex_taken) {
+		ut_ad(!trx_mutex_own(trx));
+		trx_mutex_enter(trx);
+		take_trx_mutex = true;
+	}
 
 	if (trx->lock.was_chosen_as_deadlock_victim) {
 		err = DB_DEADLOCK;
 	} else if (trx->lock.wait_lock != NULL) {
+		bool take_wait_trx_mutex = false;
+		trx_t* wait_trx = trx->lock.wait_lock->trx;
+
+		/* We take trx mutex for waiting trx if we have not yet
+		already taken it or we know that waiting trx and parameter
+		trx are not same and we are not already holding trx mutex. */
+		if ((wait_trx && wait_trx == trx && !take_trx_mutex && !trx_mutex_taken) ||
+		    (wait_trx && wait_trx != trx && wait_trx->abort_type == TRX_SERVER_ABORT)) {
+			ut_ad(!trx_mutex_own(wait_trx));
+			trx_mutex_enter(wait_trx);
+			take_wait_trx_mutex = true;
+		}
+
+		ut_ad(trx_mutex_own(wait_trx));
+
 		lock_cancel_waiting_and_release(trx->lock.wait_lock);
+
+		if (wait_trx && take_wait_trx_mutex) {
+			ut_ad(trx_mutex_own(wait_trx));
+			trx_mutex_exit(wait_trx);
+		}
+
 		err = DB_LOCK_WAIT;
 	} else {
 		/* The lock was probably granted before we got here. */
 		err = DB_SUCCESS;
 	}
 
-	lock_mutex_exit();
+	if (take_lock_mutex) {
+		ut_ad(lock_mutex_own());
+		lock_mutex_exit();
+	}
 
-	trx_mutex_exit(trx);
+	if (take_trx_mutex) {
+		ut_ad(trx_mutex_own(trx));
+		trx_mutex_exit(trx);
+	}
 
 	return(err);
 }

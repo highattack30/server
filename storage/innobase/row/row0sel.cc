@@ -5364,7 +5364,8 @@ no_gap_lock:
 			a deadlock and the transaction had to wait then
 			release the lock it is waiting on. */
 
-			err = lock_trx_handle_wait(trx);
+			trx->abort_type = TRX_SERVER_ABORT;
+			err = lock_trx_handle_wait(trx, false, false);
 
 			switch (err) {
 			case DB_SUCCESS:
