@@ -328,15 +328,15 @@ ID	Name	Country	Population
 EXPLAIN
 SELECT * FROM City WHERE (ID < 10) OR (ID BETWEEN 100 AND 110);
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	20	Using index condition; Using where
+1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	20	Using where
 EXPLAIN
 SELECT * FROM City WHERE (ID < 200) OR (ID BETWEEN 100 AND 200);
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	200	Using index condition; Using where
+1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	200	Using where
 EXPLAIN
 SELECT * FROM City WHERE (ID < 600) OR (ID BETWEEN 900 AND 1500);
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	1200	Using index condition; Using where
+1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	1200	Using where
 EXPLAIN
 SELECT * FROM City WHERE Country > 'A' AND Country < 'ARG';
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
@@ -355,21 +355,21 @@ WHERE ((ID < 10) AND (Name LIKE 'H%' OR (Country > 'A' AND Country < 'ARG')))
 OR ((ID BETWEEN 100 AND 110) AND 
 (Name LIKE 'P%' OR (Population > 103000 AND Population < 104000)));
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	range	PRIMARY,Population,Country,Name	PRIMARY	4	NULL	20	Using index condition; Using where
+1	SIMPLE	City	range	PRIMARY,Population,Country,Name	PRIMARY	4	NULL	20	Using where
 EXPLAIN
 SELECT * FROM City
 WHERE ((ID < 800) AND (Name LIKE 'Ha%' OR (Country > 'A' AND Country < 'ARG')))
 OR ((ID BETWEEN 900 AND 1500) AND 
 (Name LIKE 'Pa%' OR (Population > 103000 AND Population < 104000)));
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	index_merge	PRIMARY,Population,Country,Name	Name,Country,Population	39,3,4	NULL	190	Using sort_union(Name,Country,Population); Using where
+1	SIMPLE	City	index_merge	PRIMARY,Population,Country,Name	Name,Country,PRIMARY	39,3,4	NULL	683	Using sort_union(Name,Country,PRIMARY); Using where
 EXPLAIN
 SELECT * FROM City
 WHERE ((ID < 200) AND (Name LIKE 'Ha%' OR (Country > 'A' AND Country < 'ARG')))
 OR ((ID BETWEEN 100 AND 200) AND 
 (Name LIKE 'Pa%' OR (Population > 103000 AND Population < 104000)));
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	range	PRIMARY,Population,Country,Name	PRIMARY	4	NULL	200	Using index condition; Using where
+1	SIMPLE	City	range	PRIMARY,Population,Country,Name	PRIMARY	4	NULL	200	Using where
 SELECT * FROM City USE INDEX ()
 WHERE ((ID < 10) AND (Name LIKE 'H%' OR (Country > 'A' AND Country < 'ARG')))
 OR ((ID BETWEEN 100 AND 110) AND 
@@ -601,11 +601,11 @@ id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
 EXPLAIN 
 SELECT * FROM City WHERE ID BETWEEN 3400 AND 3800;
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	401	Using index condition
+1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	401	Using where
 EXPLAIN 
 SELECT * FROM City WHERE ID BETWEEN 3790 AND 3800;
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	11	Using index condition
+1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	11	Using where
 EXPLAIN 
 SELECT * FROM City WHERE Name LIKE 'P%';
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
@@ -617,7 +617,7 @@ WHERE ((Population > 101000 AND Population < 102000) AND
 ((ID BETWEEN 3400 AND 3800) AND 
 (Country < 'AGO' OR Name LIKE 'Pa%'));
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	index_merge	PRIMARY,Population,Country,Name	Country,Name,Population	3,39,4	NULL	115	Using sort_union(Country,Name,Population); Using where
+1	SIMPLE	City	index_merge	PRIMARY,Population,Country,Name	Population,PRIMARY	4,4	NULL	440	Using sort_union(Population,PRIMARY); Using where
 EXPLAIN
 SELECT * FROM City
 WHERE ((Population > 101000 AND Population < 110000) AND
@@ -765,27 +765,27 @@ id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
 EXPLAIN
 SELECT * FROM City WHERE ID BETWEEN 3790 AND 3800;
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	11	Using index condition
+1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	11	Using where
 EXPLAIN
 SELECT * FROM City WHERE ID BETWEEN 4025 AND 4035;
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	11	Using index condition
+1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	11	Using where
 EXPLAIN
 SELECT * FROM City WHERE ID BETWEEN 4028 AND 4032;
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	5	Using index condition
+1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	5	Using where
 EXPLAIN
 SELECT * FROM City WHERE ID BETWEEN 3500 AND 3800;
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	301	Using index condition
+1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	301	Using where
 EXPLAIN
 SELECT * FROM City WHERE ID BETWEEN 4000 AND 4300;
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	80	Using index condition
+1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	80	Using where
 EXPLAIN
 SELECT * FROM City WHERE ID BETWEEN 250 and 260 ;
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	11	Using index condition
+1	SIMPLE	City	range	PRIMARY	PRIMARY	4	NULL	11	Using where
 EXPLAIN
 SELECT * FROM City WHERE (Population > 101000 AND Population < 102000);
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
@@ -869,7 +869,7 @@ WHERE ((Population > 101000 and Population < 102000) OR
 ID BETWEEN 3790 AND 3800) AND Country='USA'
         OR (Name LIKE 'Pa%' OR ID BETWEEN 250 AND 260) AND Country='BRA';
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	City	index_merge	PRIMARY,Population,Country,Name,CountryPopulation,CountryName	CountryPopulation,PRIMARY,CountryName	7,4,38	NULL	36	Using sort_union(CountryPopulation,PRIMARY,CountryName); Using where
+1	SIMPLE	City	index_merge	PRIMARY,Population,Country,Name,CountryPopulation,CountryName	CountryPopulation,CountryName,PRIMARY	7,38,4	NULL	36	Using sort_union(CountryPopulation,CountryName,PRIMARY); Using where
 SELECT * FROM City USE INDEX ()
 WHERE ((Population > 101000 and Population < 102000) OR
 ID BETWEEN 3790 AND 3800) AND Country='USA'
@@ -913,17 +913,6 @@ WHERE ((Population > 101000 and Population < 102000) OR
 ID BETWEEN 3790 AND 3800) AND Country='USA'
         OR (Name LIKE 'Pa%' OR ID BETWEEN 250 AND 260) AND Country='BRA';
 ID	Name	Country	Population
-250	Mauá	BRA	375055
-251	Carapicuíba	BRA	357552
-252	Olinda	BRA	354732
-253	Campina Grande	BRA	352497
-254	São José do Rio Preto	BRA	351944
-255	Caxias do Sul	BRA	349581
-256	Moji das Cruzes	BRA	339194
-257	Diadema	BRA	335078
-258	Aparecida de Goiânia	BRA	324662
-259	Piracicaba	BRA	319104
-260	Cariacica	BRA	319033
 285	Paulista	BRA	248473
 339	Passo Fundo	BRA	166343
 364	Parnaíba	BRA	129756
@@ -935,6 +924,20 @@ ID	Name	Country	Population
 435	Parnamirim	BRA	96210
 448	Patos	BRA	90519
 451	Palhoça	BRA	89465
+4030	Sandy	USA	101853
+4031	Athens-Clarke County	USA	101489
+4032	Cambridge	USA	101355
+250	Mauá	BRA	375055
+251	Carapicuíba	BRA	357552
+252	Olinda	BRA	354732
+253	Campina Grande	BRA	352497
+254	São José do Rio Preto	BRA	351944
+255	Caxias do Sul	BRA	349581
+256	Moji das Cruzes	BRA	339194
+257	Diadema	BRA	335078
+258	Aparecida de Goiânia	BRA	324662
+259	Piracicaba	BRA	319104
+260	Cariacica	BRA	319033
 3793	New York	USA	8008278
 3794	Los Angeles	USA	3694820
 3795	Chicago	USA	2896016
@@ -943,9 +946,6 @@ ID	Name	Country	Population
 3798	Phoenix	USA	1321045
 3799	San Diego	USA	1223400
 3800	Dallas	USA	1188580
-4030	Sandy	USA	101853
-4031	Athens-Clarke County	USA	101489
-4032	Cambridge	USA	101355
 EXPLAIN
 SELECT * FROM City
 WHERE ((Population > 101000 AND Population < 11000) OR
@@ -1618,7 +1618,7 @@ SELECT COUNT(*) FROM t1
 WHERE c  = 'i'  OR b IN ( 'Arkansas' , 'd' , 'pdib' , 'can' )  OR
 (pk BETWEEN 120 AND 79 + 255 OR a IN ( 4 , 179 , 1 ) ) AND a > 8 ;
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	t1	index_merge	PRIMARY,idx1,idx2,idx3	idx3,idx2,PRIMARY,idx1	67,13,4,3	NULL	9	Using sort_union(idx3,idx2,PRIMARY,idx1); Using where
+1	SIMPLE	t1	index_merge	PRIMARY,idx1,idx2,idx3	idx3,idx2,idx1,PRIMARY	67,13,3,4	NULL	9	Using sort_union(idx3,idx2,idx1,PRIMARY); Using where
 DROP TABLE t1;
 CREATE TABLE t1 (
 f1 int, f2 int, f3 int, f4 int, f5 int,
@@ -1657,7 +1657,7 @@ SELECT * FROM t1 FORCE KEY (PRIMARY,f3,f4)
 WHERE ( f3 = 1 OR f1 = 7 ) AND f1 < 10
 OR f3 BETWEEN 2 AND 2 AND ( f3 = 1 OR f4 != 1 );
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	t1	ALL	PRIMARY,f3,f4	NULL	NULL	NULL	2	Using where
+1	SIMPLE	t1	index_merge	PRIMARY,f3,f4	PRIMARY,f3	4,5	NULL	2	Using union(PRIMARY,f3); Using where
 SELECT * FROM t1 FORCE KEY (PRIMARY,f3,f4)
 WHERE ( f3 = 1 OR f1 = 7 ) AND f1 < 10
 OR f3 BETWEEN 2 AND 2 AND ( f3 = 1 OR f4 != 1 );
@@ -1686,7 +1686,7 @@ SELECT * FROM t1 FORCE KEY (PRIMARY,f3,f4)
 WHERE ( f3 = 1 OR f1 = 7 ) AND f1 < 10
 OR f3 BETWEEN 2 AND 2 AND ( f3 = 1 OR f4 != 1 );
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	t1	ALL	PRIMARY,f3,f4	NULL	NULL	NULL	16	Using where
+1	SIMPLE	t1	index_merge	PRIMARY,f3,f4	PRIMARY,f3	4,5	NULL	2	Using union(PRIMARY,f3); Using where
 SELECT * FROM t1 FORCE KEY (PRIMARY,f3,f4)
 WHERE ( f3 = 1 OR f1 = 7 ) AND f1 < 10
 OR f3 BETWEEN 2 AND 2 AND ( f3 = 1 OR f4 != 1 );
@@ -1748,7 +1748,7 @@ SELECT * FROM t1
 WHERE t1.a>300 AND t1.c!=0 AND t1.b>=350 AND t1.b<=400 AND
 (t1.c=0 OR t1.a=500);
 id	select_type	table	type	possible_keys	key	key_len	ref	rows	Extra
-1	SIMPLE	t1	range	PRIMARY,idx	PRIMARY	4	NULL	1	Using index condition; Using where
+1	SIMPLE	t1	range	PRIMARY,idx	PRIMARY	4	NULL	1	Using where
 SELECT * FROM t1
 WHERE t1.a>300 AND t1.c!=0 AND t1.b>=350 AND t1.b<=400 AND
 (t1.c=0 OR t1.a=500);
